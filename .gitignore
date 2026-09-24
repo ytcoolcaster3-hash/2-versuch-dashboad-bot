@@ -1,0 +1,9 @@
+node_modules/
+node_modules2/
+.env
+.env.*
+data/config.json
+data/users.json
+data/logs.json
+data/authorized.json
+npm-debug.log*

@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Discord Bot Dashboard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="dashboard-layout">
+      <aside class="sidebar">
+        <div class="brand">
+          <img class="brand-logo" src="/logo.svg" alt="SparkysDevelopment Logo" />
+          <h2>SparkysDevelopment</h2>
+        </div>
+
+        <nav class="side-nav" aria-label="Sidebar-Navigation">
+          <button class="nav-tab active" type="button" data-tab="overview"><span>Übersicht</span><small>Live-Status</small></button>
+          <button class="nav-tab" type="button" data-tab="bot-account"><span>Bot-Account</span><small>Nachrichten & DMs</small></button>
+          <button class="nav-tab" type="button" data-tab="ai-channel"><span>KI-Kanal</span><small>Automatische Antworten</small></button>
+          <button class="nav-tab" type="button" data-tab="moderation"><span>Admin</span><small>Moderation</small></button>
+          <button class="nav-tab" type="button" data-tab="commands"><span>Commands</span><small>Bot-Befehle</small></button>
+          <button class="nav-tab" type="button" data-tab="server"><span>Server</span><small>Gemeinschaften</small></button>
+          <button class="nav-tab" type="button" data-tab="voice"><span>Voice</span><small>Join/Leave</small></button>
+          <button class="nav-tab" type="button" data-tab="roles"><span>Rollen</span><small>Verwalten</small></button>
+          <button class="nav-tab" type="button" data-tab="settings"><span>Einstellungen</span><small>Verbindung</small></button>
+          <button class="nav-tab" type="button" data-tab="users"><span>Benutzer</span><small>Zugriff steuern</small></button>
+          <button class="nav-tab" type="button" data-tab="log"><span>Log</span><small>Aktivitäten</small></button>
+        </nav>
+
+        <form method="POST" action="/session-logout" class="logout-form">
+          <button type="submit" class="logout-button">Abmelden</button>
+        </form>
+      </aside>
+
+      <main class="content">
+        <div class="app-hero">
+          <div class="hero-mark" aria-label="Dashboard Logo"><img src="/logo.svg" alt="SparkysDevelopment Logo" /></div>
+          <div class="hero-copy">
+            <span class="eyebrow">Dashboard Control Center</span>
+            <h1>SparkysDevelopment</h1>
+          </div>
+        </div>
+
+        <% if (statusMessage && statusMessage.text) { %>
+          <div class="status-toast status-<%= statusMessage.type || 'info' %>">
+            <span class="status-icon"><%= statusMessage.type === 'success' ? '✓' : statusMessage.type === 'error' ? '⚠' : 'i' %></span>
+            <span><%= statusMessage.text %></span>
+          </div>
+        <% } %>
+
+        <div class="tab-panel active" data-panel="overview">
+          <div class="overview-toolbar">
+            <div>
+              <p class="overview-kicker">Übersicht</p>
+              <h2>Dashboard-Status</h2>
+            </div>
+            <div class="quick-actions">
+              <button type="button" class="quick-action" data-open-tab="commands">Nachricht senden</button>
+              <button type="button" class="quick-action secondary" data-open-tab="roles">Rollen verwalten</button>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card"><h4>Bot-Status</h4><strong><%= botInfo.status === 'online' ? 'Online' : 'Offline' %></strong><small>Verbindung zum Discord-Client</small></div>
+            <div class="stat-card"><h4>Server</h4><strong><%= dashboardStats.guildCount %></strong><small>Aktive Discord-Guilds</small></div>
+            <div class="stat-card"><h4>Mitglieder</h4><strong><%= dashboardStats.memberCount %></strong><small>Gesamt im Dashboard</small></div>
+            <div class="stat-card"><h4>Rollen</h4><strong><%= dashboardStats.roleCount %></strong><small>Rollen in allen Servern</small></div>
+          </div>
+
+          <div class="feature-grid">
+            <div class="feature-card">
+              <span class="feature-label">Verbindung</span>
+              <h3>Bot-Account</h3>
+              <p>Bot: <strong><%= botInfo.tag %></strong></p>
+              <p>Token gespeichert: <strong><%= tokenPresent ? 'Ja' : 'Nein' %></strong></p>
+            </div>
+
+            <div class="feature-card">
+              <span class="feature-label">Schnellzugriff</span>
+              <h3>Aktionen</h3>
+              <ul>
+                <li>Bot starten / stoppen</li>
+                <li>Nachrichten senden</li>
+                <li>DM an User senden</li>
+                <li>Rollen sortieren</li>
+              </ul>
+            </div>
+
+            <div class="feature-card">
+              <span class="feature-label">Live-Status</span>
+              <h3>System</h3>
+              <p>Uptime: <strong><%= dashboardStats.uptime %></strong></p>
+              <p>Kanäle: <strong><%= dashboardStats.channelCount %></strong></p>
+              <p>Voice-Kanäle: <strong><%= dashboardStats.voiceChannelCount %></strong></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="commands">
+          <h3>Bot-Nachrichten senden</h3>
+          <div class="settings-box command-stack">
+            <form method="POST" action="/send-message" class="role-form">
+              <label for="messageGuildId">Server</label>
+              <select id="messageGuildId" name="guildId" required>
+                <option value="">Server auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <option value="<%= guild.id %>"><%= guild.name %></option>
+                <% }) %>
+              </select>
+
+              <label for="messageChannelId">Kanal</label>
+              <select id="messageChannelId" name="channelId" required>
+                <option value="">Kanal auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <% guild.channels.forEach((channel) => { %>
+                    <option value="<%= channel.id %>" data-guild="<%= guild.id %>"><%= guild.name %> · #<%= channel.name %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+
+              <label for="commandMessage">Nachricht</label>
+              <textarea id="commandMessage" name="message" rows="4" placeholder="Hallo Bot..." required></textarea>
+              <button type="submit">Nachricht senden</button>
+            </form>
+
+            <form method="POST" action="/send-dm" class="role-form dm-form">
+              <h4>Direktnachricht an Server-User</h4>
+
+              <label for="dmGuildId">Server</label>
+              <select id="dmGuildId" name="guildId" required>
+                <option value="">Server auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <option value="<%= guild.id %>"><%= guild.name %></option>
+                <% }) %>
+              </select>
+
+              <label for="dmUserId">User</label>
+              <select id="dmUserId" name="userId" required>
+                <option value="">User auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <% guild.members.forEach((member) => { %>
+                    <option value="<%= member.id %>" data-guild="<%= guild.id %>"><%= guild.name %> · <%= member.tag %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+
+              <label for="dmMessage">Nachricht</label>
+              <textarea id="dmMessage" name="message" rows="4" placeholder="Hallo, ..." required></textarea>
+              <button type="submit">DM senden</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="bot-account">
+          <div class="overview-toolbar">
+            <div>
+              <p class="overview-kicker">Bot-Account</p>
+              <h2>Nachrichten-Zentrale</h2>
+            </div>
+            <span class="account-badge"><%= botInfo.status === 'online' ? 'Online als Bot' : 'Bot offline' %></span>
+          </div>
+
+          <div class="discord-view">
+                <aside class="discord-server-rail" aria-label="Server">
+                  <button type="button" id="exit-discord-view" class="discord-home-button" data-open-tab="overview" title="Dashboard verlassen">S</button>
+                  <div class="server-rail-divider"></div>
+                  <% guilds.forEach((guild) => { %>
+                    <button type="button" class="server-rail-icon <%= guild === guilds[0] ? 'active' : '' %>" data-server-select="<%= guild.id %>" title="<%= guild.name %>"><% if (guild.icon) { %><img src="<%= guild.icon %>" alt="" /><% } else { %><%= guild.name.slice(0, 1).toUpperCase() %><% } %></button>
+                  <% }) %>
+                </aside>
+            <aside class="discord-channel-sidebar">
+              <div class="discord-sidebar-title"><%= guilds[0]?.name || 'Discord-Server' %><span>⌄</span></div>
+              <% guilds.forEach((guild) => { %>
+                <div class="discord-guild-group" data-server-group="<%= guild.id %>">
+                  <h4><span>▾</span><%= guild.name %></h4>
+                  <% [...new Set(guild.channels.map((channel) => channel.category))].forEach((category) => { %>
+                    <div class="discord-category-label"><span>▾</span><%= category %></div>
+                    <% guild.channels.filter((channel) => channel.category === category).forEach((channel, channelIndex) => { %>
+                      <button type="button" class="discord-channel-link" data-chat="channel-<%= channel.id %>">
+                        <span>#</span><%= channel.name %>
+                      </button>
+                    <% }) %>
+                  <% }) %>
+                  <% if (guild.voiceChannels && guild.voiceChannels.length) { %>
+                    <div class="discord-category-label"><span>▾</span>Sprachkanäle</div>
+                    <% guild.voiceChannels.forEach((voiceChannel) => { %>
+                      <form method="POST" action="/voice/join" class="discord-voice-link">
+                        <input type="hidden" name="guildId" value="<%= guild.id %>" />
+                        <input type="hidden" name="channelId" value="<%= voiceChannel.id %>" />
+                        <button type="submit"><span>🔊</span><%= voiceChannel.name %></button>
+                      </form>
+                    <% }) %>
+                  <% } %>
+                </div>
+              <% }) %>
+
+              <div class="discord-guild-group dm-group">
+                <h4><span>▾</span>Direktnachrichten</h4>
+                <% if (dmThreads && dmThreads.length) { %>
+                  <% dmThreads.forEach((thread, threadIndex) => { %>
+                    <button type="button" class="discord-channel-link dm-link <%= threadIndex === 0 && !guilds.some((guild) => guild.channels.some((channel) => guild.channelMessages && guild.channelMessages[channel.id])) ? 'active' : '' %>" data-chat="dm-<%= thread.userId %>">
+                      <span>●</span><%= thread.username %>
+                    </button>
+                  <% }) %>
+                <% } else { %>
+                  <small class="no-dm-note">Keine DMs empfangen</small>
+                <% } %>
+              </div>
+            </aside>
+
+            <section class="discord-chat-panel">
+              <% guilds.forEach((guild) => { %>
+                <% guild.channels.forEach((channel, channelIndex) => { %>
+                  <div class="discord-chat-view <%= channelIndex === 0 && guild.id === guilds[0]?.id ? 'active' : '' %>" data-chat-view="channel-<%= channel.id %>" data-server-view="<%= guild.id %>">
+                    <header class="discord-chat-header"><strong><span>#</span> <%= channel.name %></strong><small><%= guild.name %> · Nachrichten als Bot</small></header>
+                    <div class="discord-chat-body">
+                      <div class="message-feed">
+                        <% (guild.channelMessages[channel.id] || []).forEach((message) => { %>
+                          <article class="message-item <%= message.bot ? 'bot-message' : '' %>">
+                            <% if (message.avatar) { %><img class="message-avatar" src="<%= message.avatar %>" alt="" /><% } else { %><span class="message-avatar avatar-fallback"><%= message.author.slice(0, 1).toUpperCase() %></span><% } %>
+                            <div class="message-content"><div class="message-meta"><strong><%= message.author %></strong><time><%= new Date(message.timestamp).toLocaleString('de-DE') %></time></div><p><%= message.content %></p></div>
+                          </article>
+                        <% }) %>
+                      </div>
+                      <aside class="discord-member-sidebar">
+                        <h4>MITGLIEDER · <%= guild.members.length %></h4>
+                        <% [...new Set(guild.members.map((member) => member.highestRoleName))].forEach((roleName) => { %>
+                          <div class="member-role-group" data-member-role="<%= roleName %>">
+                            <h5><%= roleName %> · <%= guild.members.filter((member) => member.highestRoleName === roleName).length %></h5>
+                            <% guild.members.filter((member) => member.highestRoleName === roleName).forEach((member) => { %>
+                              <button type="button" class="member-row" data-member-id="<%= member.id %>" data-member-name="<%= member.tag %>" data-guild-id="<%= guild.id %>" data-role-ids="<%= member.roleIds.join(',') %>" data-context-member>
+                                <% if (member.avatar) { %><img class="member-avatar" src="<%= member.avatar %>" alt="" /><% } else { %><span class="member-avatar"><%= member.displayName.slice(0, 1).toUpperCase() %></span><% } %>
+                                <span><strong><%= member.displayName %><%= member.bot ? ' · BOT' : '' %></strong><small><%= member.tag %></small></span>
+                              </button>
+                            <% }) %>
+                          </div>
+                        <% }) %>
+                      </aside>
+                    </div>
+                    <form method="POST" action="/send-message" class="reply-form discord-composer">
+                      <input type="hidden" name="channelId" value="<%= channel.id %>" />
+                      <input type="hidden" name="guildId" value="<%= guild.id %>" />
+                      <textarea name="message" data-mention-input data-guild-id="<%= guild.id %>" rows="2" placeholder="Nachricht in #<%= channel.name %> ..." required></textarea>
+                      <div class="mention-suggestions" data-mention-suggestions hidden>
+                        <% guild.members.filter((member) => !member.bot).forEach((member) => { %>
+                          <button type="button" data-mention-value="@<%= member.displayName %> ">@<%= member.displayName %></button>
+                        <% }) %>
+                        <% guild.roles.forEach((role) => { %>
+                          <button type="button" data-mention-value="@<%= role.name %> ">@<%= role.name %></button>
+                        <% }) %>
+                      </div>
+                      <button type="submit">Senden</button>
+                    </form>
+                  </div>
+                <% }) %>
+              <% }) %>
+              <% if (dmThreads) { dmThreads.forEach((thread) => { %>
+                <div class="discord-chat-view" data-chat-view="dm-<%= thread.userId %>">
+                  <header class="discord-chat-header"><strong><span>●</span> <%= thread.username %></strong><small>Direktnachricht · Als Bot antworten</small></header>
+                  <div class="discord-chat-body">
+                    <div class="message-feed">
+                      <% thread.messages.forEach((message) => { %>
+                        <article class="message-item <%= message.bot ? 'bot-message' : '' %>">
+                          <% if (message.avatar) { %><img class="message-avatar" src="<%= message.avatar %>" alt="" /><% } else { %><span class="message-avatar avatar-fallback"><%= message.author.slice(0, 1).toUpperCase() %></span><% } %>
+                          <div class="message-content"><div class="message-meta"><strong><%= message.author %></strong><time><%= new Date(message.timestamp).toLocaleString('de-DE') %></time></div><p><%= message.content %></p></div>
+                        </article>
+                      <% }) %>
+                    </div>
+                  </div>
+                  <form method="POST" action="/send-dm" class="reply-form discord-composer">
+                    <input type="hidden" name="userId" value="<%= thread.userId %>" />
+                    <input name="message" type="text" placeholder="DM an <%= thread.username %> ..." required />
+                    <button type="submit">Antworten</button>
+                  </form>
+                </div>
+              <% }) } %>
+            </section>
+          </div>
+          <div id="member-context-menu" class="member-context-menu" hidden>
+            <strong id="context-member-label">User</strong>
+            <span>Rolle auswählen</span>
+            <div id="context-role-actions">
+              <% guilds.forEach((guild) => { %>
+                <div class="context-role-group" data-role-guild="<%= guild.id %>" hidden>
+                  <% guild.roles.forEach((role) => { %>
+                    <form method="POST" action="/assign-role" class="context-role-form">
+                      <input type="hidden" name="guildId" value="<%= guild.id %>" />
+                      <input type="hidden" name="memberId" data-context-member-input value="" />
+                      <input type="hidden" name="roleId" value="<%= role.id %>" />
+                      <span><%= role.name %></span>
+                      <button type="submit" class="role-checkbox" data-role-checkbox data-role-id="<%= role.id %>" data-role-name="<%= role.name %>" data-role-position="<%= role.position || 0 %>" title="Rolle umschalten"></button>
+                    </form>
+                  <% }) %>
+                </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="ai-channel">
+          <div class="overview-toolbar">
+            <div>
+              <p class="overview-kicker">Automatisierung</p>
+              <h2>KI-Kanal</h2>
+            </div>
+            <span class="account-badge <%= aiSettings && aiSettings.enabled ? '' : 'ai-offline' %>"><%= aiSettings && aiSettings.enabled ? 'KI aktiv' : 'KI pausiert' %></span>
+          </div>
+
+          <div class="settings-box ai-panel">
+            <div class="panel-heading">
+              <h3>Automatische Antworten</h3>
+              <p>Wähle einen Textkanal. Der Bot antwortet dort automatisch auf neue Nachrichten von Usern.</p>
+            </div>
+            <% if (!aiSettings || !aiSettings.configured) { %>
+              <div class="ai-notice">Für echte KI-Antworten fehlt noch <strong>OPENAI_API_KEY</strong> in deiner lokalen Umgebung.</div>
+            <% } %>
+            <form method="POST" action="/ai-channel" class="role-form">
+              <label for="aiGuildId">Server</label>
+              <select id="aiGuildId" name="guildId" required>
+                <option value="">Server auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <option value="<%= guild.id %>" <%= aiSettings && aiSettings.guildId === guild.id ? 'selected' : '' %>><%= guild.name %></option>
+                <% }) %>
+              </select>
+
+              <label for="aiChannelId">Textkanal</label>
+              <select id="aiChannelId" name="channelId" required>
+                <option value="">Kanal auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <% guild.channels.forEach((channel) => { %>
+                    <option value="<%= channel.id %>" data-guild="<%= guild.id %>" <%= aiSettings && aiSettings.channelId === channel.id ? 'selected' : '' %>># <%= channel.name %> · <%= guild.name %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+
+              <label class="check-item ai-toggle"><input type="checkbox" name="enabled" <%= aiSettings && aiSettings.enabled ? 'checked' : '' %> /><span>Automatische KI-Antworten aktivieren</span></label>
+              <button type="submit">KI-Kanal speichern</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="moderation">
+          <div class="overview-toolbar">
+            <div>
+              <p class="overview-kicker">Admin-Werkzeuge</p>
+              <h2>Moderation</h2>
+            </div>
+            <span class="account-badge">Serververwaltung</span>
+          </div>
+
+          <div class="settings-box moderation-panel">
+            <div class="panel-heading">
+              <h3>User verwalten</h3>
+              <p>Wähle einen Server und ein Mitglied. Jede Aktion wird im Aktivitäts-Log gespeichert.</p>
+            </div>
+            <form method="POST" action="/moderation" class="role-form moderation-form">
+              <label for="moderationGuildId">Server</label>
+              <select id="moderationGuildId" name="guildId" required>
+                <option value="">Server auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <option value="<%= guild.id %>"><%= guild.name %></option>
+                <% }) %>
+              </select>
+
+              <label for="moderationMemberId">Mitglied</label>
+              <select id="moderationMemberId" name="memberId" required>
+                <option value="">Mitglied auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <% guild.members.filter((member) => !member.bot).forEach((member) => { %>
+                    <option value="<%= member.id %>" data-guild="<%= guild.id %>"><%= guild.name %> · <%= member.tag %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+
+              <label for="moderationDuration">Timeout-Dauer in Minuten</label>
+              <input id="moderationDuration" name="duration" type="number" min="1" max="40320" value="10" />
+
+              <label for="moderationReason">Grund</label>
+              <input id="moderationReason" name="reason" type="text" placeholder="z. B. Regelverstoß" maxlength="400" />
+
+              <div class="moderation-actions">
+                <button type="submit" name="action" value="warn">Verwarnen</button>
+                <button type="submit" name="action" value="timeout">Timeout</button>
+                <button type="submit" name="action" value="kick" data-confirm="User wirklich kicken?" class="secondary">Kicken</button>
+                <button type="submit" name="action" value="ban" data-confirm="User wirklich bannen?" class="danger-button">Bannen</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="server">
+          <h3>Server</h3>
+          <div class="server-list">
+            <% if (guilds && guilds.length) { %>
+              <% guilds.forEach((guild) => { %>
+                <div class="server-item server-card">
+                  <div class="server-title"><span class="server-avatar"><%= guild.name.slice(0, 1).toUpperCase() %></span><strong><%= guild.name %></strong></div>
+                  <div class="server-metrics"><span><b><%= guild.memberCount %></b> Mitglieder</span><span><b><%= guild.channels.length %></b> Kanäle</span><span><b><%= guild.roleCount %></b> Rollen</span></div>
+                </div>
+              <% }) %>
+            <% } else { %>
+              <p>Keine Server gefunden. Der Bot muss auf einem Discord-Server sein.</p>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="voice">
+          <div class="overview-toolbar">
+            <div>
+              <p class="overview-kicker">Voice</p>
+              <h2>Call-Board</h2>
+            </div>
+            <div class="quick-actions">
+              <form method="POST" action="/voice/leave">
+                <button type="submit" class="quick-action secondary">Aus Voice raus</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="voice-layout">
+            <div class="settings-box voice-box">
+              <div class="voice-status-row">
+                <div class="voice-status-pill <%= joinedVoiceChannelId ? 'connected' : 'idle' %>">
+                  <span class="dot"></span>
+                  <%= joinedVoiceChannelId ? 'Bot ist aktuell im Voice-Channel' : 'Bot ist gerade nicht im Voice' %>
+                </div>
+              </div>
+
+              <form method="POST" action="/voice/join" class="role-form voice-form">
+                <label for="voiceGuildId">Server</label>
+                <select id="voiceGuildId" name="guildId" required>
+                  <option value="">Server auswählen</option>
+                  <% guilds.forEach((guild) => { %>
+                    <option value="<%= guild.id %>"><%= guild.name %></option>
+                  <% }) %>
+                </select>
+
+                <label for="voiceChannelId">Voice-Kanal</label>
+                <select id="voiceChannelId" name="channelId" required>
+                  <option value="">Kanal auswählen</option>
+                  <% guilds.forEach((guild) => { %>
+                    <% guild.voiceChannels.forEach((channel) => { %>
+                      <option value="<%= channel.id %>" data-guild="<%= guild.id %>"><%= guild.name %> · <%= channel.name %></option>
+                    <% }) %>
+                  <% }) %>
+                </select>
+
+                <button type="submit">Bot in Voice joinen</button>
+              </form>
+            </div>
+
+            <div class="settings-box voice-box voice-call-panel">
+              <div class="voice-call-list">
+                <h4>Verfügbare Calls</h4>
+                <% if (guilds && guilds.some((guild) => guild.voiceChannels && guild.voiceChannels.length)) { %>
+                  <% guilds.forEach((guild) => { %>
+                    <% if (guild.voiceChannels && guild.voiceChannels.length) { %>
+                      <div class="voice-call-group">
+                        <strong><%= guild.name %></strong>
+                        <div class="voice-call-items">
+                          <% guild.voiceChannels.forEach((channel) => { %>
+                            <div class="voice-call-item <%= joinedVoiceChannelId === channel.id ? 'active' : '' %>">
+                              <div>
+                                <span class="call-name">#<%= channel.name %></span>
+                                <small><%= joinedVoiceChannelId === channel.id ? 'Aktiver Call' : 'Bereit zum Joinen' %></small>
+                              </div>
+                              <form method="POST" action="/voice/join">
+                                <input type="hidden" name="guildId" value="<%= guild.id %>" />
+                                <input type="hidden" name="channelId" value="<%= channel.id %>" />
+                                <button type="submit" class="mini-button"><%= joinedVoiceChannelId === channel.id ? 'Rejoin' : 'Join' %></button>
+                              </form>
+                            </div>
+                          <% }) %>
+                        </div>
+                      </div>
+                    <% } %>
+                  <% }) %>
+                <% } else { %>
+                  <p>Es gibt derzeit keine Voice-Kanäle, in die der Bot joinen kann.</p>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="roles">
+          <h3>Rollen verwalten</h3>
+          <div class="settings-box role-manager-box">
+            <form method="POST" action="/edit-role" class="role-form">
+              <label for="roleGuildId">Server</label>
+              <select id="roleGuildId" name="guildId" required>
+                <option value="">Server auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <option value="<%= guild.id %>"><%= guild.name %></option>
+                <% }) %>
+              </select>
+
+              <label for="roleName">Rollenname</label>
+              <input id="roleName" name="roleName" type="text" placeholder="z. B. Support" required />
+
+              <label for="roleColor">Farbe</label>
+              <input id="roleColor" name="roleColor" type="color" value="#7c3aed" />
+
+              <button type="submit">Rolle erstellen</button>
+            </form>
+
+            <form method="POST" action="/assign-role" class="role-form assign-role-form">
+              <h4>Rolle an User vergeben</h4>
+
+              <label for="assignGuildId">Server</label>
+              <select id="assignGuildId" name="guildId" required>
+                <option value="">Server auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <option value="<%= guild.id %>"><%= guild.name %></option>
+                <% }) %>
+              </select>
+
+              <label for="assignMemberId">User</label>
+              <select id="assignMemberId" name="memberId" required>
+                <option value="">User auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <% guild.members.forEach((member) => { %>
+                    <option value="<%= member.id %>" data-guild="<%= guild.id %>"><%= guild.name %> · <%= member.tag %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+
+              <label for="assignRoleId">Rolle</label>
+              <select id="assignRoleId" name="roleId" required>
+                <option value="">Rolle auswählen</option>
+                <% guilds.forEach((guild) => { %>
+                  <% guild.roles.forEach((role) => { %>
+                    <option value="<%= role.id %>" data-guild="<%= guild.id %>"><%= guild.name %> · <%= role.name %></option>
+                  <% }) %>
+                <% }) %>
+              </select>
+
+              <div class="dual-action-row">
+                <button type="submit" name="action" value="add">Rolle zuweisen</button>
+                <button type="submit" formmethod="post" formaction="/remove-role" class="secondary" name="action" value="remove">Rolle entfernen</button>
+              </div>
+            </form>
+
+            <div class="role-sort-box">
+              <h4>Rollenreihenfolge</h4>
+              <% guilds.forEach((guild) => { %>
+                <% if (guild.roles && guild.roles.length) { %>
+                  <div class="guild-role-list">
+                    <strong><%= guild.name %></strong>
+                    <% guild.roles.forEach((role) => { %>
+                      <form method="POST" action="/reorder-role" class="role-sort-item">
+                        <input type="hidden" name="guildId" value="<%= guild.id %>" />
+                        <input type="hidden" name="roleId" value="<%= role.id %>" />
+                        <span><%= role.name %></span>
+                        <div class="sort-actions">
+                          <input type="number" name="targetPosition" min="1" max="<%= guild.roles.length %>" value="<%= guild.roles.findIndex((item) => item.id === role.id) + 1 %>" aria-label="Rollenposition für <%= role.name %>" />
+                          <button type="submit" class="mini-button" title="Rolle an Position setzen">OK</button>
+                          <button type="submit" name="direction" value="up" class="mini-button" title="Eine Position nach oben">↑</button>
+                          <button type="submit" name="direction" value="down" class="mini-button" title="Eine Position nach unten">↓</button>
+                        </div>
+                      </form>
+                    <% }) %>
+                  </div>
+                <% } %>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="settings">
+          <h3>Einstellungen</h3>
+          <div class="settings-box settings-stack">
+            <form method="POST" action="/setup" class="inline-form">
+              <label for="token">Bot Token</label>
+              <input id="token" name="token" type="password" placeholder="Bot Token" />
+              <button type="submit">Token speichern</button>
+            </form>
+
+            <div class="bot-actions">
+              <form method="POST" action="/start-bot">
+                <button type="submit">Bot starten</button>
+              </form>
+              <form method="POST" action="/stop-bot">
+                <button class="secondary" type="submit">Bot stoppen</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="users">
+          <h3>Benutzer & Rechte</h3>
+          <div class="settings-box user-panel">
+            <form method="POST" action="/users/create" class="role-form user-create-form">
+              <h4>Neuen Benutzer anlegen</h4>
+              <label for="newUserName">Benutzername</label>
+              <input id="newUserName" name="username" type="text" placeholder="z. B. support" required />
+
+              <label for="newUserPassword">Passwort</label>
+              <input id="newUserPassword" name="password" type="password" placeholder="Passwort" required />
+
+              <label>Rechte</label>
+              <div class="checkbox-grid">
+                <% defaultPermissions.forEach((permission) => { %>
+                  <label class="check-item">
+                    <input type="checkbox" name="permissions" value="<%= permission %>" />
+                    <span><%= permissionLabels[permission] || permission %></span>
+                  </label>
+                <% }) %>
+              </div>
+
+              <button type="submit">Benutzer erstellen</button>
+            </form>
+
+            <div class="user-list-wrap">
+              <% if (users && users.length) { %>
+                <% users.forEach((user) => { %>
+                  <form method="POST" action="/users/update" class="user-row">
+                    <div class="user-row-header">
+                      <strong><%= user.username %></strong>
+                      <small><%= (user.permissions || []).join(', ') %></small>
+                    </div>
+
+                    <input type="hidden" name="username" value="<%= user.username %>" />
+
+                    <div class="checkbox-grid">
+                      <% defaultPermissions.forEach((permission) => { %>
+                        <label class="check-item">
+                          <input type="checkbox" name="permissions" value="<%= permission %>" <%= (user.permissions || []).includes(permission) ? 'checked' : '' %> />
+                          <span><%= permissionLabels[permission] || permission %></span>
+                        </label>
+                      <% }) %>
+                    </div>
+
+                    <div class="user-actions">
+                      <button type="submit">Rechte speichern</button>
+                    </div>
+                  </form>
+                <% }) %>
+              <% } else { %>
+                <p>Keine Benutzer vorhanden.</p>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="log">
+          <h3>Aktivitäts-Log</h3>
+          <div class="settings-box">
+            <% if (logs && logs.length) { %>
+              <div class="log-table-wrap">
+                <table class="log-table">
+                  <thead>
+                    <tr>
+                      <th>Zeit</th>
+                      <th>Typ</th>
+                      <th>Bereich</th>
+                      <th>Nachricht</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% logs.forEach((log) => { %>
+                      <tr>
+                        <td><%= new Date(log.timestamp).toLocaleString('de-DE') %></td>
+                        <td><span class="log-tag <%= log.type %>"><%= logTypeLabels[log.type] || log.type %></span></td>
+                        <td><%= log.guild || log.channel || log.user || 'Dashboard' %></td>
+                        <td><%= log.message %></td>
+                      </tr>
+                    <% }) %>
+                  </tbody>
+                </table>
+              </div>
+            <% } else { %>
+              <p>Noch keine Aktivitäten protokolliert.</p>
+            <% } %>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      function activateTab(tabName) {
+        const tab = document.querySelector('.nav-tab[data-tab="' + tabName + '"]');
+        const panel = document.querySelector('.tab-panel[data-panel="' + tabName + '"]');
+        if (!tab || !panel) return;
+
+        document.body.classList.toggle('discord-mode', tabName === 'bot-account');
+        document.querySelectorAll('.nav-tab').forEach((btn) => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach((item) => item.classList.remove('active'));
+        tab.classList.add('active');
+        panel.classList.add('active');
+      }
+
+      document.querySelectorAll('.nav-tab').forEach((tab) => {
+        tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+      });
+
+      document.querySelectorAll('[data-open-tab]').forEach((trigger) => {
+        trigger.addEventListener('click', () => activateTab(trigger.dataset.openTab));
+      });
+
+      document.getElementById('exit-discord-view')?.addEventListener('click', () => {
+        document.body.classList.remove('discord-mode');
+        activateTab('overview');
+      });
+
+      document.querySelectorAll('.discord-channel-link').forEach((channelLink) => {
+        channelLink.addEventListener('click', () => {
+          document.querySelectorAll('.discord-channel-link').forEach((item) => item.classList.remove('active'));
+          document.querySelectorAll('.discord-chat-view').forEach((view) => view.classList.remove('active'));
+          channelLink.classList.add('active');
+          document.querySelector('[data-chat-view="' + channelLink.dataset.chat + '"]')?.classList.add('active');
+        });
+      });
+
+      document.querySelectorAll('[data-server-select]').forEach((serverButton) => {
+        serverButton.addEventListener('click', () => {
+          const serverId = serverButton.dataset.serverSelect;
+          document.querySelectorAll('[data-server-select]').forEach((item) => item.classList.remove('active'));
+          document.querySelectorAll('[data-server-group]').forEach((group) => {
+            group.hidden = group.dataset.serverGroup !== serverId;
+          });
+          document.querySelectorAll('[data-server-view]').forEach((view) => {
+            view.classList.remove('active');
+          });
+          document.querySelectorAll('.discord-channel-link').forEach((item) => item.classList.remove('active'));
+          const firstView = document.querySelector('[data-server-view="' + serverId + '"]');
+          const firstChannel = document.querySelector('[data-server-group="' + serverId + '"] .discord-channel-link');
+          serverButton.classList.add('active');
+          if (firstView) firstView.classList.add('active');
+          if (firstChannel) firstChannel.classList.add('active');
+          const serverName = serverButton.title;
+          const title = document.querySelector('.discord-sidebar-title');
+          if (title) title.firstChild.textContent = serverName + ' ';
+        });
+      });
+
+      document.querySelector('[data-server-select]')?.click();
+
+      const memberContextMenu = document.getElementById('member-context-menu');
+      const contextMemberLabel = document.getElementById('context-member-label');
+      let contextMemberButton = null;
+      document.querySelectorAll('[data-context-member]').forEach((member) => {
+        member.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          contextMemberButton = member;
+          contextMemberLabel.textContent = member.dataset.memberName;
+          document.querySelectorAll('[data-context-member-input]').forEach((input) => {
+            input.value = member.dataset.memberId;
+          });
+          document.querySelectorAll('[data-role-guild]').forEach((group) => {
+            group.hidden = group.dataset.roleGuild !== member.dataset.guildId;
+          });
+          const memberRoleIds = new Set((member.dataset.roleIds || '').split(',').filter(Boolean));
+          document.querySelectorAll('[data-role-checkbox]').forEach((checkbox) => {
+            const hasRole = memberRoleIds.has(checkbox.dataset.roleId);
+            checkbox.classList.toggle('has-role', hasRole);
+            checkbox.textContent = hasRole ? '✓' : '';
+            checkbox.closest('form').action = hasRole ? '/remove-role' : '/assign-role';
+          });
+          memberContextMenu.hidden = false;
+          memberContextMenu.style.left = Math.min(event.clientX, window.innerWidth - memberContextMenu.offsetWidth - 12) + 'px';
+          memberContextMenu.style.top = Math.min(event.clientY, window.innerHeight - memberContextMenu.offsetHeight - 12) + 'px';
+        });
+      });
+
+      function refreshMemberRoleGroups(sidebar) {
+        if (!sidebar || !contextMemberButton) return;
+        const guildId = contextMemberButton.dataset.guildId;
+        const roleDefinitions = new Map();
+        document.querySelectorAll('[data-role-guild="' + guildId + '"] [data-role-checkbox]').forEach((roleButton) => {
+          roleDefinitions.set(roleButton.dataset.roleId, {
+            name: roleButton.dataset.roleName,
+            position: Number(roleButton.dataset.rolePosition || 0)
+          });
+        });
+
+        const members = [...sidebar.querySelectorAll('[data-context-member]')];
+        sidebar.querySelectorAll('.member-role-group').forEach((group) => group.remove());
+        const groups = new Map();
+        members.forEach((member) => {
+          const highestRole = [...new Set((member.dataset.roleIds || '').split(',').filter(Boolean))]
+            .map((roleId) => ({ roleId, ...(roleDefinitions.get(roleId) || { name: '@everyone', position: 0 }) }))
+            .sort((a, b) => b.position - a.position)[0] || { name: '@everyone', position: 0 };
+          member.dataset.highestRoleName = highestRole.name;
+          let group = groups.get(highestRole.name);
+          if (!group) {
+            group = document.createElement('div');
+            group.className = 'member-role-group';
+            group.dataset.memberRole = highestRole.name;
+            const heading = document.createElement('h5');
+            group.appendChild(heading);
+            groups.set(highestRole.name, group);
+            sidebar.appendChild(group);
+          }
+          group.appendChild(member);
+        });
+
+        groups.forEach((group, roleName) => {
+          group.querySelector('h5').textContent = roleName + ' · ' + group.querySelectorAll('[data-context-member]').length;
+        });
+      }
+
+      document.querySelectorAll('.context-role-form').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const checkbox = form.querySelector('[data-role-checkbox]');
+          const response = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body: new URLSearchParams(new FormData(form))
+          });
+          const result = await response.json();
+          if (!result.ok) return;
+
+          const hasRole = result.action === 'assigned';
+          checkbox.classList.toggle('has-role', hasRole);
+          checkbox.textContent = hasRole ? '✓' : '';
+          form.action = hasRole ? '/remove-role' : '/assign-role';
+          if (contextMemberButton) {
+            const roleIds = new Set((contextMemberButton.dataset.roleIds || '').split(',').filter(Boolean));
+            if (hasRole) roleIds.add(result.roleId);
+            else roleIds.delete(result.roleId);
+            contextMemberButton.dataset.roleIds = [...roleIds].join(',');
+            refreshMemberRoleGroups(contextMemberButton.closest('.discord-member-sidebar'));
+          }
+          memberContextMenu.hidden = false;
+        });
+      });
+
+      document.addEventListener('click', () => {
+        if (memberContextMenu) memberContextMenu.hidden = true;
+      });
+
+      document.querySelectorAll('form[method="POST"]').forEach((form) => {
+        form.addEventListener('submit', () => {
+          const activeTab = document.querySelector('.nav-tab.active')?.dataset.tab;
+          if (!activeTab || form.querySelector('input[name="returnTab"]')) return;
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'returnTab';
+          input.value = activeTab;
+          form.appendChild(input);
+        });
+      });
+
+      document.querySelectorAll('[data-confirm]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          if (!window.confirm(button.dataset.confirm)) event.preventDefault();
+        });
+      });
+
+      function showLiveStatus(message, type) {
+        let status = document.querySelector('.status-toast');
+        if (!status) {
+          status = document.createElement('div');
+          document.querySelector('.content').prepend(status);
+        }
+        status.className = 'status-toast status-' + (type || 'success');
+        status.textContent = message;
+      }
+
+      function appendLiveMessage(view, author, text) {
+        const feed = view?.querySelector('.message-feed');
+        if (!feed) return;
+        const article = document.createElement('article');
+        article.className = 'message-item bot-message';
+        article.innerHTML = '<span class="message-avatar avatar-fallback">B</span><div class="message-content"><div class="message-meta"><strong>' + author + '</strong><time>gerade eben</time></div><p></p></div>';
+        article.querySelector('p').textContent = text;
+        feed.appendChild(article);
+        feed.scrollTop = feed.scrollHeight;
+      }
+
+      document.querySelectorAll('[data-mention-input]').forEach((input) => {
+        const form = input.closest('form');
+        const suggestions = form.querySelector('[data-mention-suggestions]');
+        const options = [...suggestions.querySelectorAll('[data-mention-value]')];
+        input.addEventListener('input', () => {
+          const beforeCursor = input.value.slice(0, input.selectionStart || input.value.length);
+          const mentionStart = beforeCursor.lastIndexOf('@');
+          if (mentionStart === -1 || beforeCursor.slice(mentionStart).includes(' ')) {
+            suggestions.hidden = true;
+            return;
+          }
+          const query = beforeCursor.slice(mentionStart + 1).toLowerCase();
+          let visible = 0;
+          options.forEach((option) => {
+            const matches = option.dataset.mentionValue.toLowerCase().includes('@' + query);
+            option.hidden = !matches;
+            if (matches) visible += 1;
+          });
+          suggestions.hidden = visible === 0;
+        });
+
+        options.forEach((option) => {
+          option.addEventListener('click', () => {
+            const cursor = input.selectionStart || input.value.length;
+            const beforeCursor = input.value.slice(0, cursor);
+            const mentionStart = beforeCursor.lastIndexOf('@');
+            const replacement = option.dataset.mentionValue;
+            input.value = input.value.slice(0, mentionStart) + replacement + input.value.slice(cursor);
+            input.focus();
+            input.selectionStart = input.selectionEnd = mentionStart + replacement.length;
+            suggestions.hidden = true;
+          });
+        });
+      });
+
+      document.querySelectorAll('.message-feed').forEach((feed) => {
+        feed.scrollTop = feed.scrollHeight;
+      });
+
+      document.querySelectorAll('form[action="/send-message"], form[action="/send-dm"]').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const field = form.querySelector('[name="message"]');
+          const button = form.querySelector('button[type="submit"]');
+          if (!field || !field.value.trim()) return;
+          const text = field.value.trim();
+          button.disabled = true;
+          try {
+            const response = await fetch(form.action, {
+              method: 'POST',
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+              body: new URLSearchParams(new FormData(form))
+            });
+            const result = await response.json();
+            if (!result.ok) throw new Error(result.message || 'Aktion fehlgeschlagen.');
+            field.value = '';
+            showLiveStatus(result.message, 'success');
+            appendLiveMessage(form.closest('.discord-chat-view'), 'SparkysDevelopment', text);
+          } catch (error) {
+            showLiveStatus(error.message, 'error');
+          } finally {
+            button.disabled = false;
+          }
+        });
+      });
+
+      const firstChatLink = document.querySelector('.discord-channel-link');
+      const firstChatView = document.querySelector('.discord-chat-view');
+      if (firstChatLink && firstChatView && !document.querySelector('.discord-chat-view.active')) {
+        firstChatLink.classList.add('active');
+        firstChatView.classList.add('active');
+      }
+
+      activateTab('<%= activeTab %>');
+
+      function filterByGuild(selectId, targetSelector, groupAttr) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        const selectedGuild = select.value;
+        const related = document.querySelectorAll(targetSelector);
+
+        related.forEach((option) => {
+          const match = !selectedGuild || option.getAttribute(groupAttr) === selectedGuild;
+          option.hidden = !match;
+          option.disabled = !match;
+        });
+      }
+
+      [
+        ['messageGuildId', '#messageChannelId option', 'data-guild'],
+        ['dmGuildId', '#dmUserId option', 'data-guild'],
+        ['aiGuildId', '#aiChannelId option', 'data-guild'],
+        ['moderationGuildId', '#moderationMemberId option', 'data-guild'],
+        ['assignGuildId', '#assignMemberId option', 'data-guild'],
+        ['assignGuildId', '#assignRoleId option', 'data-guild']
+      ].forEach(([guildId, target, attr]) => {
+        const guildSelect = document.getElementById(guildId);
+        if (!guildSelect) return;
+
+        const apply = () => filterByGuild(guildId, target, attr);
+        guildSelect.addEventListener('change', apply);
+        apply();
+      });
+    </script>
+  </body>
+</html>

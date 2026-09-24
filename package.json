@@ -1,0 +1,20 @@
+{
+  "name": "sparkydevelopment-bot-control",
+  "version": "1.0.0",
+  "description": "Discord bot dashboard with admin controls and voice features",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@discordjs/voice": "^0.19.2",
+    "discord.js": "^14.16.3",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.19.0",
+    "install": "^0.13.0",
+    "npm": "^12.1.0"
+  }
+}
