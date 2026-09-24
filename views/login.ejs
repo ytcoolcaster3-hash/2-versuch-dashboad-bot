@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SparkyDevelopment | Login</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="setup-page">
+    <div class="card login-card">
+      <h1>SparkyDevelopment</h1>
+      <p>Bitte melde dich an, um das Dashboard zu nutzen.</p>
+
+      <% if (error) { %>
+        <div class="error"><%= error %></div>
+      <% } %>
+
+      <div class="login-note">
+        Standard-Zugang: <strong>admin</strong> / <strong>admin123</strong>
+      </div>
+
+      <form method="POST" action="/login" class="login-form">
+        <label for="username">Benutzername</label>
+        <input id="username" name="username" type="text" placeholder="Benutzername" required />
+
+        <label for="password">Passwort</label>
+        <input id="password" name="password" type="password" placeholder="Passwort" required />
+
+        <button type="submit">Anmelden</button>
+      </form>
+    </div>
+  </body>
+</html>
